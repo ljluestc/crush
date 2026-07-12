@@ -54,6 +54,30 @@ func cachePathFor(name string) string {
 	return filepath.Join(home.Dir(), ".local", "share", appName, name+".json")
 }
 
+// ProviderCachePath returns the filesystem path where the Catwalk providers
+// cache is stored.  This is useful for diagnostics, especially on Windows
+// where the resolved path depends on %LOCALAPPDATA%.
+func ProviderCachePath() string {
+	return cachePathFor("providers")
+}
+
+// HyperCachePath returns the filesystem path where the Hyper provider cache
+// is stored.
+func HyperCachePath() string {
+	return cachePathFor("hyper")
+}
+
+// resetProviderState resets the in-memory provider singletons so that the
+// next call to Providers() re-reads from the on-disk cache.  It must be
+// called after any operation that writes a new cache file.
+func resetProviderState() {
+	providerOnce = sync.Once{}
+	providerList = nil
+	providerErr = nil
+	catwalkSyncer = &catwalkSync{}
+	hyperSyncer = &hyperSync{}
+}
+
 // UpdateProviders updates the Catwalk providers list from a specified source.
 func UpdateProviders(pathOrURL string) error {
 	var providers []catwalk.Provider
@@ -81,11 +105,16 @@ func UpdateProviders(pathOrURL string) error {
 		}
 	}
 
-	if err := newCache[[]catwalk.Provider](cachePathFor("providers")).Store(providers); err != nil {
+	cachePath := cachePathFor("providers")
+	if err := newCache[[]catwalk.Provider](cachePath).Store(providers); err != nil {
 		return fmt.Errorf("failed to save providers to cache: %w", err)
 	}
 
-	slog.Info("Providers updated successfully", "count", len(providers), "from", pathOrURL, "to", cachePathFor)
+	// Reset in-memory singletons so the updated cache is picked up on the
+	// next call to Providers() within the same process.
+	resetProviderState()
+
+	slog.Info("Providers updated successfully", "count", len(providers), "from", pathOrURL, "to", cachePath)
 	return nil
 }
 
@@ -114,11 +143,16 @@ func UpdateHyper(pathOrURL string) error {
 		}
 	}
 
-	if err := newCache[catwalk.Provider](cachePathFor("hyper")).Store(provider); err != nil {
+	cachePath := cachePathFor("hyper")
+	if err := newCache[catwalk.Provider](cachePath).Store(provider); err != nil {
 		return fmt.Errorf("failed to save Hyper provider to cache: %w", err)
 	}
 
-	slog.Info("Hyper provider updated successfully", "from", pathOrURL, "to", cachePathFor("hyper"))
+	// Reset in-memory singletons so the updated cache is picked up on the
+	// next call to Providers() within the same process.
+	resetProviderState()
+
+	slog.Info("Hyper provider updated successfully", "from", pathOrURL, "to", cachePath)
 	return nil
 }
 

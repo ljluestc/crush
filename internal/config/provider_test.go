@@ -4,20 +4,11 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"sync"
 	"testing"
 
 	"charm.land/catwalk/pkg/catwalk"
 	"github.com/stretchr/testify/require"
 )
-
-func resetProviderState() {
-	providerOnce = sync.Once{}
-	providerList = nil
-	providerErr = nil
-	catwalkSyncer = &catwalkSync{}
-	hyperSyncer = &hyperSync{}
-}
 
 func TestProviders_Integration_AutoUpdateDisabled(t *testing.T) {
 	tmpDir := t.TempDir()

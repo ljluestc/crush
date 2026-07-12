@@ -44,12 +44,17 @@ crush update-providers --source=hyper https://hyper.example.com
 			pathOrURL = args[0]
 		}
 
-		var err error
+		var (
+			err       error
+			cachePath string
+		)
 		switch updateProvidersSource {
 		case "catwalk":
 			err = config.UpdateProviders(pathOrURL)
+			cachePath = config.ProviderCachePath()
 		case "hyper":
 			err = config.UpdateHyper(pathOrURL)
+			cachePath = config.HyperCachePath()
 		default:
 			return fmt.Errorf("invalid source %q, must be 'catwalk' or 'hyper'", updateProvidersSource)
 		}
@@ -71,8 +76,12 @@ crush update-providers --source=hyper https://hyper.example.com
 		textStyle := lipgloss.NewStyle().
 			MarginLeft(2).
 			SetString(fmt.Sprintf("%s provider updated successfully.", updateProvidersSource))
+		cacheStyle := lipgloss.NewStyle().
+			MarginLeft(2).
+			Faint(true).
+			SetString(fmt.Sprintf("Cache: %s", cachePath))
 
-		fmt.Printf("%s\n%s\n\n", headerStyle.Render(), textStyle.Render())
+		fmt.Printf("%s\n%s\n%s\n\n", headerStyle.Render(), textStyle.Render(), cacheStyle.Render())
 		return nil
 	},
 }
