@@ -899,6 +899,9 @@ func (c *coordinator) buildOpenaiCompatProvider(baseURL, apiKey string, headers 
 	opts := []openaicompat.Option{
 		openaicompat.WithBaseURL(baseURL),
 		openaicompat.WithAPIKey(apiKey),
+		openaicompat.WithLanguageModelOptions(
+			openai.WithLanguageModelStreamExtraFunc(openAICompatLegacyFunctionCallStreamExtra),
+		),
 	}
 
 	// Set HTTP client based on provider and debug mode.

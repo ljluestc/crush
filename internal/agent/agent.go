@@ -984,6 +984,9 @@ func (a *sessionAgent) Run(ctx context.Context, call SessionAgentCall) (result *
 					}
 				}
 			}
+			if cleaned := stripLegacyFunctionCallMarkup(currentAssistant.Content().Text); cleaned != currentAssistant.Content().Text {
+				setMessageTextContent(currentAssistant, cleaned)
+			}
 			currentAssistant.AddFinish(finishReason, "", "")
 			sessionLock.Lock()
 			defer sessionLock.Unlock()
@@ -2240,4 +2243,23 @@ func sanitizeToolInput(toolName, toolCallID, input string) (string, bool) {
 		return "{}", true
 	}
 	return input, false
+}
+
+func setMessageTextContent(msg *message.Message, text string) {
+	newParts := make([]message.ContentPart, 0, len(msg.Parts))
+	replaced := false
+	for _, part := range msg.Parts {
+		if _, isText := part.(message.TextContent); isText {
+			if !replaced && text != "" {
+				newParts = append(newParts, message.TextContent{Text: text})
+			}
+			replaced = true
+			continue
+		}
+		newParts = append(newParts, part)
+	}
+	if !replaced && text != "" {
+		newParts = append(newParts, message.TextContent{Text: text})
+	}
+	msg.Parts = newParts
 }
